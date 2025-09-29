@@ -1,10 +1,10 @@
 import torch 
 from torch import nn
-from NN_model import NeuralNetwork
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+from NN_model import NeuralNetwork
 from IBP import IBP
 
 
@@ -121,15 +121,6 @@ class Bounding(IBP):
 
 
 
-        
-
-
-
-
-
-
-
-
 
 if __name__ == "__main__":
     # Fix the seed and initialize the model
@@ -142,10 +133,7 @@ if __name__ == "__main__":
     input_size = model.NN[0].weight.shape[1]
     input = torch.cat([torch.rand(input_size).unsqueeze(1)*0.5, 0.5*torch.rand(input_size).unsqueeze(1) + 0.5], dim=1).to(device)
 
-    # IBP = IBP(model, input)
-    # IBP.print_IBP_results()
-
     Bounding = Bounding(model, input)
+    Bounding.plot_relaxations(1,1)
+    Bounding.plot_relaxations(1,2)
     Bounding.plot_relaxations(3,1)
-    Bounding.plot_relaxations(3,2)
-    Bounding.plot_relaxations(5,3)
