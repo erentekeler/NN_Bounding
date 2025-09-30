@@ -45,20 +45,20 @@ class IBP():
         pre_layer_input = input # this is the input before it is passed to the next layer
 
         layer_information = pd.DataFrame(columns=['Layer_idx', 'Layer_type', 'Layer_input', 'Layer_output']) # To keep the layer information neatly
-        for _, layer in enumerate(model.NN):
+        for layer_idx, layer in enumerate(model.NN):
             if isinstance(layer, nn.Linear):
                 pre_activation_bounds = pre_layer_input
                 pre_layer_input = self.IBP_Linear(layer, pre_activation_bounds)
 
                 # The layer information is saved here in a dataframe
-                layer_information.loc[len(layer_information), :] = {'Layer_type': "nn.Linear",'Layer_input': pre_activation_bounds.detach().cpu(), 'Layer_output': pre_layer_input.detach().cpu()}
+                layer_information.loc[len(layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.Linear",'Layer_input': pre_activation_bounds.detach().cpu(), 'Layer_output': pre_layer_input.detach().cpu()}
 
             if isinstance(layer, nn.ReLU):
                 pre_activation_bounds = pre_layer_input
                 pre_layer_input = self.IBP_ReLU(pre_activation_bounds) # Compute the next layers input bounds
 
                 # The layer information is saved here in a dataframe
-                layer_information.loc[len(layer_information), :] = {'Layer_type': "nn.ReLU",'Layer_input': pre_activation_bounds.detach().cpu(), 'Layer_output': pre_layer_input.detach().cpu()}
+                layer_information.loc[len(layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.ReLU",'Layer_input': pre_activation_bounds.detach().cpu(), 'Layer_output': pre_layer_input.detach().cpu()}
 
         return layer_information
 

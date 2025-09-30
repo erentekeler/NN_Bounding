@@ -55,6 +55,7 @@ for layer_idx, layer in layer_information.iterrows():
         # Post activation constraints, 
         m.addConstr(post_activation >= lower_slope * expression + lower_bias)
         m.addConstr(post_activation <= upper_slope * expression + upper_bias)
+        m.addConstr(post_activation >= expression)
 
         expression = post_activation # The expression is flowing through the layers
 
@@ -66,6 +67,7 @@ m.setObjective(expression, gp.GRB.MINIMIZE)
 m.optimize()
 
 print(f"Optimal objective value: {m.objVal}")
-print(f"Solution values: x= \n {input_var.X.reshape(-1, 1)}")
+# print(f"Solution values: x= \n {input_var.X.reshape(-1, 1)}")
 
-
+# -71.19877973686097 
+# -67.15401419856809 - w\ triangle relaxation
