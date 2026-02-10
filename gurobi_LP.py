@@ -31,13 +31,16 @@ def solve_LP(model, input_range, model_type, c=None):
     for layer_idx, layer in layer_information.iterrows():
         # If the layer is linear, compute the layer output just using weight, bias and layer_input
         if layer["Layer_type"] == "nn.Linear":
+            out_dim = model.NN[layer_idx].weight.shape[0] # Getting the number of output neurons
+
+            # Defining the layer output variable
+            layer_output = m.addMVar(out_dim, lb=layer["Layer_output"][:, 0], ub=layer["Layer_output"][:, 1], name=f'z_{layer_idx}') 
+
             # Getting the linear layer weights and biases to compute the layer output
-            layer_output = model.NN[layer_idx].weight.detach().cpu().numpy() @ layer_input + model.NN[layer_idx].bias.detach().cpu().numpy() 
-            
+            m.addConstr(layer_output == model.NN[layer_idx].weight.detach().numpy() @ layer_input + model.NN[layer_idx].bias.detach().numpy())
+
             if layer_idx == layer_information.index[-1]:
-                out_dim = model.NN[layer_idx].weight.shape[0] # Getting the number of output neurons
-                final_layer_output = m.addMVar(out_dim, lb=layer["Layer_output"][:, 0], ub=layer["Layer_output"][:, 1])
-                m.addConstr(final_layer_output == layer_output)
+                final_layer_output = layer_output
             else:
                 layer_input = layer_output # This then becomes a layer input to the next layer, an expression
 
@@ -71,7 +74,7 @@ def solve_LP(model, input_range, model_type, c=None):
         ub = final_layer_output.X
         ub = [ub] if type(ub)==int else ub
 
-    # Print the output nicely :) 
+    # Print the output nicely
     print('************************************************************************', '\n')
 
     print('Gurobi Output Bounds: ')
