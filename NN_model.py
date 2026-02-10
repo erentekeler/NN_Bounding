@@ -28,7 +28,7 @@ class NeuralNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(100, 50),
             nn.ReLU(),
-            nn.Linear(50, 1)
+            nn.Linear(50, 20)
         )
 
         # # Auto lirpa paper example
@@ -47,17 +47,13 @@ class NeuralNetwork(nn.Module):
 
 
 if __name__=="__main__":
-    input = torch.ones(20)
     model = NeuralNetwork()
+    input = torch.ones(model.NN[0].weight.shape[1])
+    print("Model input: ", input)
     print("Model output: ", model(input))
+    print()
 
-    for name, module in model.named_modules():
-        print(name, module)
+    print("NN architecture:")
+    for layer in model.NN:
+        print(layer)
 
-
-    # This is for exporting it as an ONNX model
-    # torch.onnx.export(model, input, "model.onnx")
-    # onnx_model = onnx.load("model.onnx")
-
-    # for node in onnx_model.graph.node:
-    #     print(f"Node name: {node.name}, Operation: {node.op_type}, Inputs: {node.input}, Outputs: {node.output}")
