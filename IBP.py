@@ -45,7 +45,7 @@ class IBP():
         pre_layer_input = input # this is the input before it is passed to the next layer
 
         layer_information = pd.DataFrame(columns=['Layer_idx', 'Layer_type', 'Layer_input', 'Layer_output']) # To keep the layer information neatly
-        for layer_idx, layer in enumerate(model.NN):
+        for layer_idx, layer in enumerate(model):
             if isinstance(layer, nn.Linear):
                 pre_activation_bounds = pre_layer_input
                 pre_layer_input = self.IBP_Linear(layer, pre_activation_bounds)
@@ -87,39 +87,39 @@ class IBP():
 
 
 if __name__ == "__main__":
-    # # Fix the seed and initialize the model
-    # torch.manual_seed(10)
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # model = NeuralNetwork().to(device)
+    # Fix the seed and initialize the model
+    torch.manual_seed(10)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = NeuralNetwork().NN.to(device)
 
-    # # I determine the input shape based on model parameters to be generic
-    # # i_l is drawn from U[0.5), i_u is drawn from U[0.5 1) to ensure the validitiy of bounds
-    # input_size = model.NN[0].weight.shape[1]
-    # input = torch.cat([torch.rand(input_size).unsqueeze(1)*0.5, 0.5*torch.rand(input_size).unsqueeze(1) + 0.5], dim=1).to(device)
+    # I determine the input shape based on model parameters to be generic
+    # i_l is drawn from U[0.5), i_u is drawn from U[0.5 1) to ensure the validitiy of bounds
+    input_size = model[0].weight.shape[1]
+    input = torch.cat([torch.rand(input_size).unsqueeze(1)*0.5, 0.5*torch.rand(input_size).unsqueeze(1) + 0.5], dim=1).to(device)
 
-    # IBP = IBP(model, input)
-    # IBP.print_IBP_results()
+    IBP = IBP(model, input)
+    IBP.print_IBP_results()
 
 
 
     # Auto_lirpa paper example
     # Fix the seed and initialize the model
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = NeuralNetwork()
-    model.NN[0].weight = nn.Parameter(torch.tensor([[2, 1], [-3, 4]], dtype=torch.float32))
-    model.NN[0].bias = nn.Parameter(torch.tensor([0,0], dtype=torch.float32))
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # model = NeuralNetwork().NN
+    # model[0].weight = nn.Parameter(torch.tensor([[2, 1], [-3, 4]], dtype=torch.float32))
+    # model[0].bias = nn.Parameter(torch.tensor([0,0], dtype=torch.float32))
 
-    model.NN[2].weight = nn.Parameter(torch.tensor([[4, -2], [2, 1]], dtype=torch.float32))
-    model.NN[2].bias = nn.Parameter(torch.tensor([0,0], dtype=torch.float32))
+    # model[2].weight = nn.Parameter(torch.tensor([[4, -2], [2, 1]], dtype=torch.float32))
+    # model[2].bias = nn.Parameter(torch.tensor([0,0], dtype=torch.float32))
 
-    model.NN[4].weight = nn.Parameter(torch.tensor([-2, 1], dtype=torch.float32))
-    model.NN[4].bias = nn.Parameter(torch.tensor([0], dtype=torch.float32))
+    # model[4].weight = nn.Parameter(torch.tensor([-2, 1], dtype=torch.float32))
+    # model[4].bias = nn.Parameter(torch.tensor([0], dtype=torch.float32))
 
-    model = model.to(device)
+    # model = model.to(device)
 
-    input = torch.tensor([[-2, 2], [-1, 3]]).to(device)
+    # input = torch.tensor([[-2, 2], [-1, 3]]).to(device)
 
-    IBP = IBP(model, input)
+    # IBP = IBP(model, input)
 
-    IBP.print_IBP_results()
+    # IBP.print_IBP_results()
 

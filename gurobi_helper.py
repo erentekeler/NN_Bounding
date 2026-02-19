@@ -12,7 +12,7 @@ def constrain_ReLU(m, layer, layer_idx, layer_input, model_type):
     ReLU_input_var = layer_input
 
     # Creating the post activation variables for the ReLU layer
-    post_activation_var = m.addMVar(n_neurons, lb=-gp.GRB.INFINITY, name=f'z_hat_{layer_idx}')
+    post_activation_var = m.addMVar(n_neurons, lb=0, name=f'z_hat_{layer_idx}')
 
 
     if model_type == 'triangular':
