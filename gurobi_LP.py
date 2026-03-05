@@ -55,40 +55,57 @@ def solve_LP(model, input_range, model_type, c=None):
             else:
                 layer_input = layer_output # This then becomes a layer input to the next layer, an expression
 
-    # get the lower bound
-    m.setObjective(final_layer_output.sum(), gp.GRB.MINIMIZE)
+    if c=="all":
+        output_dim = final_layer_output.shape[0]
+        lb = np.zeros(output_dim)
+        ub = np.zeros(output_dim)
+        for i in range(output_dim):
+            # Property function, as a linear combination
+            # I am setting them to natural basis vectors to get the elementwise bounds 
+            c = np.zeros(output_dim)
+            c[i] = 1
 
-    m.optimize()
+            # get the lower bound
+            m.setObjective(c.T@final_layer_output, gp.GRB.MINIMIZE)
+            m.optimize()
+            lb[i] = m.ObjVal
 
-    if m.Status == gp.GRB.OPTIMAL:
-        lb = final_layer_output.X
-        lb = [lb] if type(lb)==int else lb
+            # get the upper bound
+            m.setObjective(c.T@final_layer_output, gp.GRB.MAXIMIZE)
+            m.optimize()
+            ub[i] = m.ObjVal
+        
+        # This is just to print elementwise bounds
+        print(f'Gurobi {model_type} Output Bounds: \n')
+        for idx in range(output_dim):
+            print(f'{lb[idx]} <= f_{idx}(x) <= {ub[idx]}')
 
-    # get the upper bound
-    m.setObjective(final_layer_output.sum(), gp.GRB.MAXIMIZE)
+    else: 
+        # Getting the nonzero indices
+        non_zero_indices = np.nonzero(c)
 
-    m.optimize()
+        # get the lower bound
+        m.setObjective(c.T@final_layer_output, gp.GRB.MINIMIZE)
+        m.optimize()
+        lb = m.ObjVal
 
-    if m.Status == gp.GRB.OPTIMAL:
-        ub = final_layer_output.X
-        ub = [ub] if type(ub)==int else ub
+        # get the upper bound
+        m.setObjective(c.T@final_layer_output, gp.GRB.MAXIMIZE)
+        m.optimize()
+        ub = m.ObjVal
 
-    # Print the output nicely
-    print('************************************************************************', '\n')
+        property = ""
+        for non_zero_idx in non_zero_indices[0]:
+            sign = "+" if c[non_zero_idx]>0 else "-"
+            property += f"{sign} {np.abs(c[non_zero_idx])}f_{non_zero_idx}(x) "
 
-    print('Gurobi Output Bounds: \n')
-    
-    for idx in range(len(lb)):
-        print(f'{lb[idx]} <= f_{idx}(x) <= {ub[idx]}')
-
-    print('\n************************************************************************', '\n')    
-
-    # for v in m.getVars():
-    #     print(f"{v.VarName}: {v.X}")
+        # This is to print the bounds on the property
+        print(f'Gurobi {model_type} Output Bounds: \n')
+        print(f'{lb} <= {property} <= {ub}')
+            
 
 
 if __name__ == "__main__":
-
     # %% This part initializes the model and solves for the convex relaxations
     # Fix the seed and initialize the model
     torch.manual_seed(10)
