@@ -65,13 +65,13 @@ class IBP():
 
     def print_IBP_results(self, verbose=True):
         # Print the output nicely :) 
-        print('************************************************************************', '\n')
+        print('\n', '************************************************************************')
 
         print('IBP Output Bounds: ', '\n')
         for idx, bounds in enumerate(self.layer_information.Layer_output.iloc[-1]):
             print(f'{bounds[0]} <= f_{idx}(x) <= {bounds[1]}')
 
-        print('\n************************************************************************', '\n')
+        print('************************************************************************', '\n')
         
         if verbose:
             for idx, row in self.layer_information.iterrows():

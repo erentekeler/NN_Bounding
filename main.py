@@ -19,11 +19,12 @@ input = torch.cat([torch.rand(input_size).unsqueeze(1)*0.5, 0.5*torch.rand(input
 
 # Here I am creating the linear coefficients for the property we want to verify
 # I implemented it in a way that it computes elementwise bounds when c = "all"
-output_size = model[-1].weight.shape[0]
-c = np.zeros(output_size)
-c[15] = 1
-c[16] = 1
+# output_size = model[-1].weight.shape[0]
+# c = np.zeros(output_size)
+# c[15] = 1
+# c[16] = 1
 
 IBP = IBP(model, input).print_IBP_results(verbose=False)
-solve_LP(model, input, model_type="triangular", c=c)
+solve_LP(model, input, model_type="triangular", c="all")
+solve_LP(model, input, model_type="MILP", c="all")
 # solve_LP(model, input, model_type="MILP")

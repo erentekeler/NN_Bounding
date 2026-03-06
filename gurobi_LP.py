@@ -76,9 +76,11 @@ def solve_LP(model, input_range, model_type, c=None):
             ub[i] = m.ObjVal
         
         # This is just to print elementwise bounds
+        print('\n', '************************************************************************')
         print(f'Gurobi {model_type} Output Bounds: \n')
         for idx in range(output_dim):
             print(f'{lb[idx]} <= f_{idx}(x) <= {ub[idx]}')
+        print('************************************************************************', '\n')
 
     else: 
         # Getting the nonzero indices
@@ -100,8 +102,10 @@ def solve_LP(model, input_range, model_type, c=None):
             property += f"{sign} {np.abs(c[non_zero_idx])}f_{non_zero_idx}(x) "
 
         # This is to print the bounds on the property
+        print('\n', '************************************************************************')
         print(f'Gurobi {model_type} Output Bounds: \n')
         print(f'{lb} <= {property} <= {ub}')
+        print('************************************************************************', '\n')
             
 
 
