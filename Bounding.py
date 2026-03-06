@@ -62,8 +62,8 @@ class Bounding(IBP):
         # Masking the ReLU layers 
         ReLU_mask = (self.layer_information["Layer_type"] == "nn.ReLU")
 
-        self.layer_information.loc[ReLU_mask, "Upper_bound_slope"] = self.layer_information.loc[ReLU_mask, "Layer_input"].apply(compute_slope)
-        self.layer_information.loc[ReLU_mask, "Upper_bound_bias"] = self.layer_information.loc[ReLU_mask, "Layer_input"].apply(compute_intercept)
+        self.layer_information.loc[ReLU_mask, "Upper_bound_slope"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(compute_slope)
+        self.layer_information.loc[ReLU_mask, "Upper_bound_bias"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(compute_intercept)
 
 
     def ReLU_lower(self):
@@ -78,8 +78,8 @@ class Bounding(IBP):
         # Masking the ReLU layers 
         ReLU_mask = (self.layer_information["Layer_type"] == "nn.ReLU")
 
-        self.layer_information.loc[ReLU_mask, "Lower_bound_slope"] = self.layer_information.loc[ReLU_mask, "Layer_input"].apply(set_zero)
-        self.layer_information.loc[ReLU_mask, "Lower_bound_bias"] = self.layer_information.loc[ReLU_mask, "Layer_input"].apply(set_zero)
+        self.layer_information.loc[ReLU_mask, "Lower_bound_slope"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(set_zero)
+        self.layer_information.loc[ReLU_mask, "Lower_bound_bias"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(set_zero)
 
 
     def plot_relaxations(self, layer_idx, neuron_idx):
@@ -93,7 +93,7 @@ class Bounding(IBP):
         activation_function = torch.relu if activation_function_type=="nn.ReLU" else None
 
         # Getting the intended pre-activation bounds 
-        pre_activation_bounds_x = self.layer_information.loc[layer_idx, "Layer_input"][neuron_idx, :]
+        pre_activation_bounds_x = self.layer_information.loc[layer_idx, "Layer_input_bounds"][neuron_idx, :]
         pre_activation_bounds_y = activation_function(pre_activation_bounds_x)
 
         # Plotting pre_activation bounds

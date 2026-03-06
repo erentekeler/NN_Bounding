@@ -34,7 +34,7 @@ def solve_LP(model, input_range, model_type, c=None):
             out_dim = model[layer_idx].weight.shape[0] # Getting the number of output neurons
 
             # Defining the layer output variable
-            layer_output = m.addMVar(out_dim, lb=layer["Layer_output"][:, 0], ub=layer["Layer_output"][:, 1], name=f'z_{layer_idx}') 
+            layer_output = m.addMVar(out_dim, lb=layer["Layer_output_bounds"][:, 0], ub=layer["Layer_output_bounds"][:, 1], name=f'z_{layer_idx}') 
 
             # Getting the linear layer weights and biases to compute the layer output
             m.addConstr(layer_output == model[layer_idx].weight.detach().cpu().numpy() @ layer_input + model[layer_idx].bias.detach().cpu().numpy())
