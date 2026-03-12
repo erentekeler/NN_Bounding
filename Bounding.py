@@ -73,7 +73,7 @@ class Bounding(IBP):
         '''
 
         def set_zero(pre_activation_bounds_x):
-            return torch.zeros(pre_activation_bounds_x.shape[0], 1)
+            return torch.zeros(pre_activation_bounds_x.shape[0])
 
         # Masking the ReLU layers 
         ReLU_mask = (self.layer_information["Layer_type"] == "nn.ReLU")
