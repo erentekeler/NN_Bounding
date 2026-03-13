@@ -1,20 +1,20 @@
 import torch 
-from torch import nn
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 from NN_model import NeuralNetwork
 from IBP import IBP
 
+# TODO add a feature to compute the relaxations based on given preactivation bounds rather than using IBP
+
 
 
 
 class Bounding(IBP):
-    def __init__(self, model, input):
-        super().__init__(model, input)  
+    def __init__(self, model, input_range=None, eps=None, x_0=None, norm=None, c=None):
+        super().__init__(model, input_range=input_range, eps=eps, x_0=x_0, norm=norm, c=c)  
+        self.layer_information = self.compute_bounds(print_interm_bounds=False, print_out_bounds=False)
         self.compute_relaxations()
-
 
 
     def compute_relaxations(self):

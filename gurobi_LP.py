@@ -15,7 +15,7 @@ from gurobi_helper import constrain_ReLU
 
 def solve_LP(model, input_range, model_type, c=None):
     # Computing the IBP bounds, and getting the network information
-    bound_computer = Bounding(model, input_range)
+    bound_computer = Bounding(model, input_range=input_range)
     layer_information = bound_computer.layer_information 
 
     # %% Implemented the Gurobi model here
@@ -55,7 +55,7 @@ def solve_LP(model, input_range, model_type, c=None):
             else:
                 layer_input = layer_output # This then becomes a layer input to the next layer, an expression
 
-    if c=="all":
+    if c is None:
         output_dim = final_layer_output.shape[0]
         lb = np.zeros(output_dim)
         ub = np.zeros(output_dim)
