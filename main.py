@@ -4,6 +4,7 @@ import numpy as np
 from gurobi_LP import solve_LP
 from NN_model import NeuralNetwork
 from IBP import IBP
+from backward_lirpa import backward_lirpa
 
 '''Defining the model and the input range'''
 # %% This part initializes the model and solves for the convex relaxations
@@ -27,6 +28,10 @@ c = np.ones(output_size)
 # IBP
 IBP = IBP(model, input_range=input_range)
 IBP.compute_bounds(print_interm_bounds=False, print_out_bounds=True)
+
+# Backward
+backward_lirpa = backward_lirpa(model=model, input_range=input_range)
+backward_lb, backward_ub = backward_lirpa.compute_bounds(print_out_bounds=True)
 
 # Triangular relaxation LP
 solve_LP(model, input_range=input_range, model_type="triangular", c=None)
