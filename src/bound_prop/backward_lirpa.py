@@ -15,7 +15,7 @@ class backward_lirpa():
                 lb_relaxations: Dict =None):
         self.device = 'cuda' if torch.cuda.is_available() else "cpu"
 
-        bound_computer = Bounding(model, input_range=input_range, eps=eps, x_0=x_0, norm=norm, c=c)
+        bound_computer = Bounding(model, input_range=input_range, eps=eps, x_0=x_0, norm=norm)
         self.layer_information = bound_computer.layer_information 
         self.set_relaxations(ub_relaxations, lb_relaxations) # This function is called to set user defined relaxations, if any given
 

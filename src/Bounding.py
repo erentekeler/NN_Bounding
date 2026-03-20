@@ -10,8 +10,8 @@ from src.bound_prop.IBP import IBP
 
 
 class Bounding(IBP):
-    def __init__(self, model, input_range=None, eps=None, x_0=None, norm=None, c=None):
-        super().__init__(model, input_range=input_range, eps=eps, x_0=x_0, norm=norm, c=c)  
+    def __init__(self, model, input_range=None, eps=None, x_0=None, norm=None):
+        super().__init__(model, input_range=input_range, eps=eps, x_0=x_0, norm=norm, c=None)  
         self.layer_information = self.compute_bounds(print_interm_bounds=False, print_out_bounds=False)
         self.compute_relaxations()
 
