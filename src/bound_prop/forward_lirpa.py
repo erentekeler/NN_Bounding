@@ -145,8 +145,8 @@ class forward_lirpa():
                 d_ub = torch.max(c_zeros, c_diag)@d_ub_temp + torch.min(c_zeros, c_diag)@d_lb_temp
 
                 sum_vector = torch.ones_like(self.c)
-                lb = -self.input_specs["eps"]*torch.norm(sum_vector.T@A_lb.T, p=self.input_specs["dual_norm"]) + torch.matmul(sum_vector.T @ A_lb, self.input_specs["x_0"]) + sum_vector.T@d_lb
-                ub = self.input_specs["eps"]*torch.norm(sum_vector.T@A_ub.T, p=self.input_specs["dual_norm"]) + torch.matmul(sum_vector.T @ A_ub, self.input_specs["x_0"]) + sum_vector.T@d_ub
+                lb = -self.input_specs["eps"]*torch.norm(sum_vector.T@A_lb, p=self.input_specs["dual_norm"]) + torch.matmul(sum_vector.T @ A_lb, self.input_specs["x_0"]) + sum_vector.T@d_lb
+                ub = self.input_specs["eps"]*torch.norm(sum_vector.T@A_ub, p=self.input_specs["dual_norm"]) + torch.matmul(sum_vector.T @ A_ub, self.input_specs["x_0"]) + sum_vector.T@d_ub
         else:
             input_range = self.input_specs["input_range"]
             x_sig = (1/2)*(input_range[:, 1] - input_range[:, 0])
