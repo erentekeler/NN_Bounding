@@ -8,9 +8,9 @@ import numpy as np
 import torch
 from torch import nn
 
-from Bounding import Bounding
-from NN_model import NeuralNetwork
-from gurobi_helper import constrain_ReLU
+from src.Bounding import Bounding
+from src.NN_model import NeuralNetwork
+from src.gurobi_verifiers.gurobi_helper import constrain_ReLU
 
 
 def solve_LP(model, input_range, model_type, c=None):

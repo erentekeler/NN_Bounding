@@ -1,11 +1,12 @@
 import torch
+from torch import nn
 from typing import Dict
 
-from NN_model import NeuralNetwork
-from Bounding import Bounding
+from src.NN_model import NeuralNetwork
+from src.Bounding import Bounding
 import numpy as np
 
-
+# TODO add forward-backward
 
 class backward_lirpa():
     def __init__(self, model, input_range=None,
@@ -89,14 +90,6 @@ class backward_lirpa():
                 A_ub = torch.max(zero_A, A_ub)@slope_upper + torch.min(zero_A, A_ub)@slope_lower
                 A_lb = torch.max(zero_A, A_lb)@slope_lower + torch.min(zero_A, A_lb)@slope_upper
 
-        # I need to perform a shape correction for concretization. If c exist, then A becomes a vector and d becomes a scalar. 
-        # I unsqueeze them in that scenarios to keep the norm computation dimension static.
-        if self.c is not None:
-            A_ub = A_ub.unsqueeze(0)
-            A_lb = A_lb.unsqueeze(0)
-            d_ub = d_ub.unsqueeze(0)
-            d_lb = d_lb.unsqueeze(0)
-
         return (A_ub, A_lb, d_lb, d_ub)    
 
 
@@ -158,13 +151,10 @@ class backward_lirpa():
                 property += f"{sign} {np.abs(f_cpu_c[non_zero_idx])}f_{non_zero_idx}(x) "
 
             # Getting the output bounds on the property
-            output_bounds = self.layer_information.Layer_output_bounds.iloc[-1].cpu().numpy().flatten()
-            lb = output_bounds[0]
-            ub = output_bounds[1]
 
             # This is to print the bounds on the property
             print('\n', '************************************************************************')
-            print(f'{lb} <= {property} <= {ub}')
+            print(f'{lb.item()} <= {property} <= {ub.item()}')
         print('************************************************************************', '\n')
 
 
@@ -175,68 +165,31 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = NeuralNetwork().NN.to(device)
 
-    c = torch.zeros((20,1)).to(device)
-    c[0] = 1
-    c[15] = -18
+    output_size = model[-1].weight.shape[0]
+    c = torch.zeros((output_size,1)).to(device)
+    c[0] = -21
+    c[15] = -5
 
     '''This runs it with elementwise infinity norm ball'''
     # # I determine the input shape based on model parameters to be generic
     # # i_l is drawn from U[0.5), i_u is drawn from U[0.5 1) to ensure the validitiy of bounds
-    # input_size = model[0].weight.shape[1]
-    # input = torch.cat([torch.rand(input_size).unsqueeze(1)*0.5, 0.5*torch.rand(input_size).unsqueeze(1) + 0.5], dim=1).to(device)
-
-    # backward_lirpa = backward_lirpa(model=model, input_range=input, c=c)
-    # backward_lb, backward_ub = backward_lirpa.compute_bounds(print_out_bounds=True)
-
-
-    '''This runs it with a pure norm ball'''
-    # I determine the input shape based on model parameters to be generic
     input_size = model[0].weight.shape[1]
-    x_0 = torch.ones(input_size, dtype=torch.float32, device=device)
-    norm = 2
-    eps = 10
+    input = torch.cat([torch.rand(input_size).unsqueeze(1)*0.5, 0.5*torch.rand(input_size).unsqueeze(1) + 0.5], dim=1).to(device)
 
-    backward_lirpa = backward_lirpa(model=model, eps=eps, x_0=x_0, norm=norm, c=None)
+    backward_lirpa = backward_lirpa(model=model, input_range=input, c=None)
     backward_lb, backward_ub = backward_lirpa.compute_bounds(print_out_bounds=True)
 
 
+    '''This runs it with a pure norm ball'''
+    # # I determine the input shape based on model parameters to be generic
+    # input_size = model[0].weight.shape[1]
+    # x_0 = torch.ones(input_size, dtype=torch.float32, device=device)
+    # norm = 2
+    # eps = 10
+
+    # backward_lirpa = backward_lirpa(model=model, eps=eps, x_0=x_0, norm=norm, c=c)
+    # backward_lb, backward_ub = backward_lirpa.compute_bounds(print_out_bounds=True)
 
 
 
 
-
-
-
-
-
-
-
-
-    # # Auto_lirpa paper example
-    # # I took the parameters from the paper
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # model = NeuralNetwork().NN.to(device)
-    # model[0].weight = nn.Parameter(torch.tensor([[2, 1], [-3, 4]], dtype=torch.float32))
-    # model[0].bias = nn.Parameter(torch.tensor([0,0], dtype=torch.float32))
-
-    # model[2].weight = nn.Parameter(torch.tensor([[4, -2], [2, 1]], dtype=torch.float32))
-    # model[2].bias = nn.Parameter(torch.tensor([0,0], dtype=torch.float32))
-
-    # model[4].weight = nn.Parameter(torch.tensor([[-2, 1]], dtype=torch.float32))
-    # model[4].bias = nn.Parameter(torch.tensor([0], dtype=torch.float32))
-
-    # model = model.to(device)
-
-    # input = torch.tensor([[-2, 2], [-1, 3]]).to(device)
-
-    # ub_relaxations = {1:{"Upper_bound_slope": torch.tensor([0.58, 0.64]),
-    #                      "Upper_bound_bias": torch.tensor([2.92, 6.43])},
-    #                   3:{"Upper_bound_slope": torch.tensor([0.4375, 1]),
-    #                      "Upper_bound_bias": torch.tensor([15.75, 0]),
-    #                      "Lower_bound_slope": torch.tensor([0, 1.0])}}
-
-    # backward_lirpa = backward_lirpa(model=model, input_range=input, ub_relaxations=ub_relaxations).compute_A()
-
-
-
-    mat = torch.tensor([[3,4], [-6, -8]], dtype=torch.float32)

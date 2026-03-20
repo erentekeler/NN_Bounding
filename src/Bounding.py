@@ -2,11 +2,10 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-from NN_model import NeuralNetwork
-from IBP import IBP
+from src.NN_model import NeuralNetwork
+from src.bound_prop.IBP import IBP
 
 # TODO add a feature to compute the relaxations based on given preactivation bounds rather than using IBP
-
 
 
 
@@ -74,6 +73,9 @@ class Bounding(IBP):
 
         def set_zero(pre_activation_bounds_x):
             return torch.zeros(pre_activation_bounds_x.shape[0])
+        
+        def set_one(pre_activation_bounds_x):
+            return torch.ones(pre_activation_bounds_x.shape[0])
 
         # Masking the ReLU layers 
         ReLU_mask = (self.layer_information["Layer_type"] == "nn.ReLU")
