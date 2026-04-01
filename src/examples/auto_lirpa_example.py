@@ -40,11 +40,11 @@ model.to(device)
 '''Paper has given relaxation parameters, you can load them as follows'''
 # dictionary indices denote the layer index, 1st and 3rd layers are ReLUs for the given NN
 # lb relaxations are already 0x+0 by default, paper assumed the same
-ub_relaxations = {1:{"Upper_bound_slope": torch.tensor([0.58, 0.64]),
-                     "Upper_bound_bias": torch.tensor([2.92, 6.43])},
-                  3:{"Upper_bound_slope": torch.tensor([0.4375, 1]),
-                     "Upper_bound_bias": torch.tensor([15.75, 0]),
-                     "Lower_bound_slope": torch.tensor([0, 1.0])}}
+ub_relaxations = {1:{"IBP_ub_slope": torch.tensor([0.58, 0.64]),
+                     "IBP_ub_bias": torch.tensor([2.92, 6.43])},
+                  3:{"IBP_ub_slope": torch.tensor([0.4375, 1]),
+                     "IBP_ub_bias": torch.tensor([15.75, 0]),
+                     "IBP_lb_slope": torch.tensor([0, 1.0])}}
 
 
 

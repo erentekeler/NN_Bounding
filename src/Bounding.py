@@ -61,8 +61,8 @@ class Bounding(IBP):
         # Masking the ReLU layers 
         ReLU_mask = (self.layer_information["Layer_type"] == "nn.ReLU")
 
-        self.layer_information.loc[ReLU_mask, "Upper_bound_slope"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(compute_slope)
-        self.layer_information.loc[ReLU_mask, "Upper_bound_bias"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(compute_intercept)
+        self.layer_information.loc[ReLU_mask, "IBP_ub_slope"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(compute_slope)
+        self.layer_information.loc[ReLU_mask, "IBP_ub_bias"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(compute_intercept)
 
 
     def ReLU_lower(self):
@@ -80,8 +80,8 @@ class Bounding(IBP):
         # Masking the ReLU layers 
         ReLU_mask = (self.layer_information["Layer_type"] == "nn.ReLU")
 
-        self.layer_information.loc[ReLU_mask, "Lower_bound_slope"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(set_zero)
-        self.layer_information.loc[ReLU_mask, "Lower_bound_bias"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(set_zero)
+        self.layer_information.loc[ReLU_mask, "IBP_lb_slope"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(set_zero)
+        self.layer_information.loc[ReLU_mask, "IBP_lb_bias"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(set_zero)
 
 
     def plot_relaxations(self, layer_idx, neuron_idx):
@@ -107,11 +107,11 @@ class Bounding(IBP):
         plt.plot(x_range, activation_function(torch.tensor(x_range)), c='black', label="ReLU")
 
         # Getting the relaxation parameters
-        upper_slope = self.layer_information.loc[layer_idx, "Upper_bound_slope"][neuron_idx]
-        upper_bias = self.layer_information.loc[layer_idx, "Upper_bound_bias"][neuron_idx]
+        upper_slope = self.layer_information.loc[layer_idx, "IBP_ub_slope"][neuron_idx]
+        upper_bias = self.layer_information.loc[layer_idx, "IBP_ub_bias"][neuron_idx]
 
-        lower_slope = self.layer_information.loc[layer_idx, "Lower_bound_slope"][neuron_idx]
-        lower_bias = self.layer_information.loc[layer_idx, "Lower_bound_bias"][neuron_idx]
+        lower_slope = self.layer_information.loc[layer_idx, "IBP_lb_slope"][neuron_idx]
+        lower_bias = self.layer_information.loc[layer_idx, "IBP_lb_bias"][neuron_idx]
 
         # Plotting the bounds
         plt.plot(x_range, upper_slope*x_range + upper_bias, linestyle='--', label="Upper Bound")

@@ -6,7 +6,7 @@ import numpy as np
 def constrain_ReLU(m, layer, layer_idx, layer_input, model_type):
 
     '''Defining variables for pre and post activation'''
-    n_neurons = layer["Upper_bound_slope"].shape[0] # Getting the number of neurons
+    n_neurons = layer["IBP_ub_slope"].shape[0] # Getting the number of neurons
 
     # Creating the preactivation variable and bounding it based on IBP limits
     ReLU_input_var = layer_input
@@ -24,8 +24,11 @@ def constrain_ReLU(m, layer, layer_idx, layer_input, model_type):
 
 
         # Getting the relaxation parameters
-        upper_slope = layer["Upper_bound_slope"].detach().cpu().numpy()
-        upper_bias = layer["Upper_bound_bias"].detach().cpu().numpy()
+        upper_slope = layer["IBP_ub_slope"].detach().cpu().numpy()
+        upper_bias = layer["IBP_ub_bias"].detach().cpu().numpy()
+
+        lower_slope = layer["IBP_lb_slope"].detach().cpu().numpy()
+        lower_bias = layer["IBP_lb_bias"].detach().cpu().numpy()
 
         # Both positive
         if b_positive_mask.any():
@@ -41,7 +44,7 @@ def constrain_ReLU(m, layer, layer_idx, layer_input, model_type):
 
         # lb negative, ub positive
         if unstable_mask.any():
-            m.addConstr(post_activation_var[unstable_mask] >= 0) # lower bound y>=0
+            m.addConstr(post_activation_var[unstable_mask] >= lower_slope[unstable_mask]*ReLU_input_var[unstable_mask] + lower_bias[unstable_mask]) # lower bound y>=lb_slope*x + lb_bias
             m.addConstr(post_activation_var[unstable_mask] >= ReLU_input_var[unstable_mask]) # lower bound y>=x
             m.addConstr(post_activation_var[unstable_mask] <= upper_slope[unstable_mask]*ReLU_input_var[unstable_mask] + upper_bias[unstable_mask]) # upper bound, IBP computed
 
