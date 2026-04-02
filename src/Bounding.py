@@ -1,22 +1,41 @@
 import torch 
+from torch import nn
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from src.NN_model import NeuralNetwork
-from src.bound_prop.IBP import IBP
-
-# TODO add a feature to compute the relaxations based on given preactivation bounds rather than using IBP
 
 
 
-class Bounding(IBP):
-    def __init__(self, model, input_range=None, eps=None, x_0=None, norm=None):
-        super().__init__(model, input_range=input_range, eps=eps, x_0=x_0, norm=norm, c=None)  
-        self.layer_information = self.compute_bounds(print_interm_bounds=False, print_out_bounds=False)
-        self.compute_relaxations()
+class Bounding():
+    def __init__(self, model, method=None):
+        self.model = model
+        self.method = method # IBP, forward or backward
+        
+        self.parse_network() # initializes the layer_information dataframe
 
 
-    def compute_relaxations(self):
+
+    def parse_network(self):
+        # To keep the layer information neatly, bounds are added here and filled by bound prop methods
+        layer_information = pd.DataFrame(columns=['Layer_idx', 'Layer_type',
+                                                   f'{self.method}_input_bounds', f'{self.method}_output_bounds',
+                                                   f"{self.method}_ub_slope", f"{self.method}_ub_bias",
+                                                   f"{self.method}_lb_slope", f"{self.method}_lb_bias"]) 
+        for layer_idx, layer in enumerate(self.model):
+            if isinstance(layer, nn.Linear):
+                # The layer information is saved here in a dataframe
+                layer_information.loc[len(layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.Linear"}
+
+            if isinstance(layer, nn.ReLU):
+                # The layer information is saved here in a dataframe 
+                layer_information.loc[len(layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.ReLU"}
+
+        self.layer_information = layer_information
+
+
+    def compute_relaxations(self, pre_activation_bounds_x, layer_idx):
         ''' 
         This function computes the slope and the bias of the upper convex relaxations.
 
@@ -33,11 +52,11 @@ class Bounding(IBP):
         # Checking if the NN has the ReLU function, if yes, the relaxations are computed
         # TODO do it for the other activation functions
         if "nn.ReLU" in activation_functions["Layer_type"].unique():
-            self.ReLU_upper()
-            self.ReLU_lower()
+            self.ReLU_upper(pre_activation_bounds_x, layer_idx)
+            self.ReLU_lower(pre_activation_bounds_x, layer_idx)
 
 
-    def ReLU_upper(self):
+    def ReLU_upper(self, pre_activation_bounds_x, layer_idx):
         '''
         This function computes the upper convex relaxation of the ReLU activation functions
         '''
@@ -58,14 +77,11 @@ class Bounding(IBP):
 
             return intercept
 
-        # Masking the ReLU layers 
-        ReLU_mask = (self.layer_information["Layer_type"] == "nn.ReLU")
-
-        self.layer_information.loc[ReLU_mask, "IBP_ub_slope"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(compute_slope)
-        self.layer_information.loc[ReLU_mask, "IBP_ub_bias"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(compute_intercept)
+        self.layer_information.loc[layer_idx, "IBP_ub_slope"] = compute_slope(pre_activation_bounds_x)
+        self.layer_information.loc[layer_idx, "IBP_ub_bias"] = compute_intercept(pre_activation_bounds_x)
 
 
-    def ReLU_lower(self):
+    def ReLU_lower(self, pre_activation_bounds_x, layer_idx):
         '''
         This function computes the lower convex relaxation of the ReLU activation functions
         By default the lower bound is y=0
@@ -77,11 +93,8 @@ class Bounding(IBP):
         def set_one(pre_activation_bounds_x):
             return torch.ones(pre_activation_bounds_x.shape[0])
 
-        # Masking the ReLU layers 
-        ReLU_mask = (self.layer_information["Layer_type"] == "nn.ReLU")
-
-        self.layer_information.loc[ReLU_mask, "IBP_lb_slope"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(set_zero)
-        self.layer_information.loc[ReLU_mask, "IBP_lb_bias"] = self.layer_information.loc[ReLU_mask, "Layer_input_bounds"].apply(set_zero)
+        self.layer_information.loc[layer_idx, "IBP_lb_slope"] = set_zero(pre_activation_bounds_x)
+        self.layer_information.loc[layer_idx, "IBP_lb_bias"] = set_zero(pre_activation_bounds_x)
 
 
     def plot_relaxations(self, layer_idx, neuron_idx):
@@ -95,7 +108,7 @@ class Bounding(IBP):
         activation_function = torch.relu if activation_function_type=="nn.ReLU" else None
 
         # Getting the intended pre-activation bounds 
-        pre_activation_bounds_x = self.layer_information.loc[layer_idx, "Layer_input_bounds"][neuron_idx, :]
+        pre_activation_bounds_x = self.layer_information.loc[layer_idx, f"{self.method}_input_bounds"][neuron_idx, :]
         pre_activation_bounds_y = activation_function(pre_activation_bounds_x)
 
         # Plotting pre_activation bounds
@@ -107,11 +120,11 @@ class Bounding(IBP):
         plt.plot(x_range, activation_function(torch.tensor(x_range)), c='black', label="ReLU")
 
         # Getting the relaxation parameters
-        upper_slope = self.layer_information.loc[layer_idx, "IBP_ub_slope"][neuron_idx]
-        upper_bias = self.layer_information.loc[layer_idx, "IBP_ub_bias"][neuron_idx]
+        upper_slope = self.layer_information.loc[layer_idx, f"{self.method}_ub_slope"][neuron_idx]
+        upper_bias = self.layer_information.loc[layer_idx, f"{self.method}_ub_bias"][neuron_idx]
 
-        lower_slope = self.layer_information.loc[layer_idx, "IBP_lb_slope"][neuron_idx]
-        lower_bias = self.layer_information.loc[layer_idx, "IBP_lb_bias"][neuron_idx]
+        lower_slope = self.layer_information.loc[layer_idx, f"{self.method}_lb_slope"][neuron_idx]
+        lower_bias = self.layer_information.loc[layer_idx, f"{self.method}_lb_bias"][neuron_idx]
 
         # Plotting the bounds
         plt.plot(x_range, upper_slope*x_range + upper_bias, linestyle='--', label="Upper Bound")
@@ -120,22 +133,3 @@ class Bounding(IBP):
         plt.legend()
         plt.tight_layout()
         plt.show()
-
-
-
-
-if __name__ == "__main__":
-    # Fix the seed and initialize the model
-    torch.manual_seed(10)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = NeuralNetwork().NN.to(device)
-
-    # I determine the input shape based on model parameters to be generic
-    # i_l is drawn from U[0.5), i_u is drawn from U[0.5 1) to ensure the validitiy of bounds
-    input_size = model[0].weight.shape[1]
-    input = torch.cat([torch.rand(input_size).unsqueeze(1)*0.5, 0.5*torch.rand(input_size).unsqueeze(1) + 0.5], dim=1).to(device)
-
-    Bounding = Bounding(model, input)
-    Bounding.plot_relaxations(1,1)
-    Bounding.plot_relaxations(1,2)
-    Bounding.plot_relaxations(3,1)

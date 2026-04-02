@@ -4,14 +4,18 @@ import pandas as pd
 import numpy as np
 
 from src.NN_model import NeuralNetwork
+from src.Bounding import Bounding
 
 
+class IBP(Bounding):
+    def __init__(self, model, input_range=None, eps=None, x_0=None, norm=None, c=None, compute_relaxation_params=False):
+        super().__init__(model=model, method="IBP") # initializing the bounding object, layer_information dataframe comes from here
 
-class IBP():
-    def __init__(self, model, input_range=None, eps=None, x_0=None, norm=None, c=None):
         # setting the NN and the specification vector as class attributes
         self.model = model
         self.c = c
+
+        self.compute_relaxation_params = compute_relaxation_params # If true, relaxation parameters are computed
 
         # put all input related parameters in a dictionary, this is later processed to find the dual norm and simplify concretization
         self.input_specs = {"input_range": input_range, "eps": eps, "x_0": x_0, "norm": norm}
@@ -98,17 +102,17 @@ class IBP():
         
         returns: output bounds, and preactivation bounds for each activation function
         '''
-        layer_information = pd.DataFrame(columns=['Layer_idx', 'Layer_type', 'Layer_input_bounds', 'Layer_output_bounds']) # To keep the layer information neatly
+
         for layer_idx, layer in enumerate(self.model):
             is_last = (layer_idx==len(self.model)-1)
             # Here the first layer is handled based on the input set definition 
             if layer_idx==0:
                 if self.input_specs["input_range"] is not None:  # elementwise infinity norm ball
                     layer_output_bounds = self.IBP_Linear_ew(layer, self.input_specs["input_range"])
-                    layer_information.loc[len(layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.Linear",'Layer_input_bounds': self.input_specs["input_range"].detach().cpu(), 'Layer_output_bounds': layer_output_bounds.detach().cpu()}
+                    self.layer_information.loc[layer_idx, ['IBP_input_bounds', 'IBP_output_bounds']] = [self.input_specs["input_range"].detach().cpu(), layer_output_bounds.detach().cpu()]
                 else: 
                     layer_output_bounds = self.IBP_Linear_p_norm(layer)
-                    layer_information.loc[len(layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.Linear",'Layer_input_bounds': None, 'Layer_output_bounds': layer_output_bounds.detach().cpu()}
+                    self.layer_information.loc[layer_idx, ['IBP_input_bounds', 'IBP_output_bounds']] = [None, layer_output_bounds.detach().cpu()]
 
             else: # If it is not a special case, i.e., not the input or the last linear layer
                 if isinstance(layer, nn.Linear):
@@ -116,7 +120,7 @@ class IBP():
                     c = self.c if (is_last and self.c is not None) else None
                     layer_output_bounds = self.IBP_Linear_ew(layer, layer_input_bounds, c=c)
                     # The layer information is saved here in a dataframe
-                    layer_information.loc[len(layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.Linear",'Layer_input_bounds': layer_input_bounds.detach().cpu(), 'Layer_output_bounds': layer_output_bounds.detach().cpu()}
+                    self.layer_information.loc[layer_idx, ['IBP_input_bounds', 'IBP_output_bounds']] = [layer_input_bounds.detach().cpu(), layer_output_bounds.detach().cpu()]
 
                 if isinstance(layer, nn.ReLU):
                     layer_input_bounds = layer_output_bounds
@@ -124,9 +128,14 @@ class IBP():
                     c_applied_bounds = self.apply_c(layer_output_bounds) if (is_last and self.c is not None) else layer_output_bounds
 
                     # The layer information is saved here in a dataframe
-                    layer_information.loc[len(layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.ReLU",'Layer_input_bounds': layer_input_bounds.detach().cpu(), 'Layer_output_bounds': c_applied_bounds.detach().cpu()}
+                    self.layer_information.loc[layer_idx, ['IBP_input_bounds', 'IBP_output_bounds']] = [layer_input_bounds.detach().cpu(), c_applied_bounds.detach().cpu()]
 
-        self.layer_information = layer_information
+                    '''Computing the relaxation parameters based on the input bounds of the activation function'''
+                    if self.compute_relaxation_params: 
+                        self.compute_relaxations(layer_input_bounds.detach().cpu(), layer_idx)
+
+
+        self.layer_information = self.layer_information
 
         # Checks if bounds will be printed
         if print_out_bounds:
@@ -140,7 +149,7 @@ class IBP():
         print('\n', '************************************************************************')
         print('IBP Output Bounds: ')
         if self.c is None:
-            for idx, bounds in enumerate(self.layer_information.Layer_output_bounds.iloc[-1]):
+            for idx, bounds in enumerate(self.layer_information["IBP_output_bounds"].iloc[-1]):
                 print(f'{bounds[0]} <= f_{idx}(x) <= {bounds[1]}')
         else: 
             # Getting the nonzero indices
@@ -153,7 +162,7 @@ class IBP():
                 property += f"{sign} {np.abs(f_cpu_c[non_zero_idx])}f_{non_zero_idx}(x) "
 
             # Getting the output bounds on the property
-            output_bounds = self.layer_information.Layer_output_bounds.iloc[-1].cpu().numpy().flatten()
+            output_bounds = self.layer_information["IBP_output_bounds"].iloc[-1].cpu().numpy().flatten()
             lb = output_bounds[0]
             ub = output_bounds[1]
 
@@ -204,7 +213,7 @@ if __name__ == "__main__":
     norm = 2
     eps = 10
 
-    IBP = IBP(model, x_0=x_0, norm=norm, eps=eps, c=c)
+    IBP = IBP(model, x_0=x_0, norm=norm, eps=eps, c=c, compute_relaxation_params=False)
     IBP.compute_bounds(print_interm_bounds=False, print_out_bounds=True)
 
 
