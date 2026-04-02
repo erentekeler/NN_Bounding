@@ -9,7 +9,7 @@ from src.Bounding import Bounding
 
 class IBP(Bounding):
     def __init__(self, model, input_range=None, eps=None, x_0=None, norm=None, c=None, compute_relaxation_params=False):
-        super().__init__(model=model, method="IBP") # initializing the bounding object, layer_information dataframe comes from here
+        super().__init__(model=model, method="IBP", compute_relaxation_params=compute_relaxation_params) # initializing the bounding object, layer_information dataframe comes from here
 
         # setting the NN and the specification vector as class attributes
         self.model = model
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     norm = 2
     eps = 10
 
-    IBP = IBP(model, x_0=x_0, norm=norm, eps=eps, c=c, compute_relaxation_params=False)
+    IBP = IBP(model, x_0=x_0, norm=norm, eps=eps, c=c, compute_relaxation_params=True)
     IBP.compute_bounds(print_interm_bounds=False, print_out_bounds=True)
 
 

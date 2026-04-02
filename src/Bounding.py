@@ -9,30 +9,28 @@ from src.NN_model import NeuralNetwork
 
 
 class Bounding():
-    def __init__(self, model, method=None):
+    def __init__(self, model, method=None, compute_relaxation_params=False):
         self.model = model
         self.method = method # IBP, forward or backward
         
-        self.parse_network() # initializes the layer_information dataframe
+        self.parse_network(compute_relaxation_params=compute_relaxation_params) # initializes the layer_information dataframe
 
 
-
-    def parse_network(self):
+    def parse_network(self, compute_relaxation_params):
         # To keep the layer information neatly, bounds are added here and filled by bound prop methods
-        layer_information = pd.DataFrame(columns=['Layer_idx', 'Layer_type',
-                                                   f'{self.method}_input_bounds', f'{self.method}_output_bounds',
-                                                   f"{self.method}_ub_slope", f"{self.method}_ub_bias",
-                                                   f"{self.method}_lb_slope", f"{self.method}_lb_bias"]) 
+        relaxation_params_columns = [f"{self.method}_ub_slope", f"{self.method}_ub_bias", f"{self.method}_lb_slope", f"{self.method}_lb_bias"] if compute_relaxation_params else None                           
+        self.layer_information = pd.DataFrame(columns=['Layer_idx', 'Layer_type',
+                                                   f'{self.method}_input_bounds', f'{self.method}_output_bounds'] 
+                                                   + relaxation_params_columns)
+                                                   
         for layer_idx, layer in enumerate(self.model):
             if isinstance(layer, nn.Linear):
                 # The layer information is saved here in a dataframe
-                layer_information.loc[len(layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.Linear"}
+                self.layer_information.loc[len(self.layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.Linear"}
 
             if isinstance(layer, nn.ReLU):
                 # The layer information is saved here in a dataframe 
-                layer_information.loc[len(layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.ReLU"}
-
-        self.layer_information = layer_information
+                self.layer_information.loc[len(self.layer_information), :] = {'Layer_idx': layer_idx, 'Layer_type': "nn.ReLU"}
 
 
     def compute_relaxations(self, pre_activation_bounds_x, layer_idx):
@@ -42,16 +40,11 @@ class Bounding():
         By default it sets the lower bound of ReLUs as 0.
         
         '''
+        # Getting the activation function type
+        activation_function = self.layer_information.at[layer_idx, "Layer_type"]
 
-        # Mask the dataframe and get the activation functions
-        mask_activation = self.layer_information["Layer_type"] != "nn.Linear"
-
-        # Getting the activation functions
-        activation_functions = self.layer_information.loc[mask_activation]
-
-        # Checking if the NN has the ReLU function, if yes, the relaxations are computed
-        # TODO do it for the other activation functions
-        if "nn.ReLU" in activation_functions["Layer_type"].unique():
+        # if layer is a ReLU activation, compute the relaxation parameters for that
+        if activation_function =="nn.ReLU":
             self.ReLU_upper(pre_activation_bounds_x, layer_idx)
             self.ReLU_lower(pre_activation_bounds_x, layer_idx)
 
@@ -77,8 +70,8 @@ class Bounding():
 
             return intercept
 
-        self.layer_information.loc[layer_idx, "IBP_ub_slope"] = compute_slope(pre_activation_bounds_x)
-        self.layer_information.loc[layer_idx, "IBP_ub_bias"] = compute_intercept(pre_activation_bounds_x)
+        self.layer_information.at[layer_idx, "IBP_ub_slope"] = compute_slope(pre_activation_bounds_x)
+        self.layer_information.at[layer_idx, "IBP_ub_bias"] = compute_intercept(pre_activation_bounds_x)
 
 
     def ReLU_lower(self, pre_activation_bounds_x, layer_idx):
@@ -93,15 +86,14 @@ class Bounding():
         def set_one(pre_activation_bounds_x):
             return torch.ones(pre_activation_bounds_x.shape[0])
 
-        self.layer_information.loc[layer_idx, "IBP_lb_slope"] = set_zero(pre_activation_bounds_x)
-        self.layer_information.loc[layer_idx, "IBP_lb_bias"] = set_zero(pre_activation_bounds_x)
+        self.layer_information.at[layer_idx, "IBP_lb_slope"] = set_zero(pre_activation_bounds_x)
+        self.layer_information.at[layer_idx, "IBP_lb_bias"] = set_zero(pre_activation_bounds_x)
 
 
     def plot_relaxations(self, layer_idx, neuron_idx):
         '''
         This function plots the upper and lower convex relaxations for debugging purposes
         '''
-
         # Get the activation function type TODO implement it for other activation functions too
         activation_function_type = self.layer_information.loc[layer_idx, "Layer_type"]
 
