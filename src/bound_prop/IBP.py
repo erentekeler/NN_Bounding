@@ -8,9 +8,11 @@ from src.Bounding import Bounding
 
 
 class IBP(Bounding):
-    def __init__(self, model, input_range=None, eps=None, x_0=None, norm=None, c=None, compute_relaxation_params=False):
-        super().__init__(model=model, method="IBP", compute_relaxation_params=compute_relaxation_params) # initializing the bounding object, layer_information dataframe comes from here
-
+    def __init__(self, model, input_range=None, eps=None, x_0=None,
+                  norm=None, c=None, compute_relaxation_params=False):
+        # initializing the bounding object, layer_information dataframe comes from here
+        super().__init__(model=model, method="IBP", compute_relaxation_params=compute_relaxation_params, compute_interm_bounds=True) 
+        
         # setting the NN and the specification vector as class attributes
         self.model = model
         self.c = c
@@ -72,20 +74,20 @@ class IBP(Bounding):
         b = layer.bias
 
         # This is the equivalent of iterating over the natural basis specification vectors 'c'. This is to compute the first layer output bounds
-        y_lb = -self.input_specs["eps"]*torch.norm(W, p=self.input_specs["dual_norm"], dim=1) + W@self.input_specs["x_0"] + b
-        y_ub = self.input_specs["eps"]*torch.norm(W, p=self.input_specs["dual_norm"], dim=1) + W@self.input_specs["x_0"] + b
+        y_l = -self.input_specs["eps"]*torch.norm(W, p=self.input_specs["dual_norm"], dim=1) + W@self.input_specs["x_0"] + b
+        y_u = self.input_specs["eps"]*torch.norm(W, p=self.input_specs["dual_norm"], dim=1) + W@self.input_specs["x_0"] + b
         
-        return torch.cat([y_lb.unsqueeze(1), y_ub.unsqueeze(1)], dim=1)
+        return torch.cat([y_l.unsqueeze(1), y_u.unsqueeze(1)], dim=1)
     
 
     def apply_c(self, bounds):
         '''Used only when last layer is ReLU, sign-split on per-neuron bounds.'''
-        c_vec = self.c.flatten()
-        c_pos = torch.clamp(c_vec, min=0)
-        c_neg = torch.clamp(c_vec, max=0)
-        lb = c_pos @ bounds[:, 0] + c_neg @ bounds[:, 1] # flip and sum if negative, preserve and sum if positive
-        ub = c_pos @ bounds[:, 1] + c_neg @ bounds[:, 0]
-        return torch.stack([lb, ub]).unsqueeze(0)
+        c_pos = torch.clamp(self.c, min=0)
+        c_neg = torch.clamp(self.c, max=0)
+        y_l = c_pos @ bounds[:, 0] + c_neg @ bounds[:, 1] # flip and sum if negative, preserve and sum if positive
+        y_u = c_pos @ bounds[:, 1] + c_neg @ bounds[:, 0]
+
+        return torch.cat([y_l.unsqueeze(1), y_u.unsqueeze(1)], dim=1)
 
 
     def IBP_ReLU(self, input_range):
@@ -126,22 +128,21 @@ class IBP(Bounding):
                     layer_input_bounds = layer_output_bounds
                     layer_output_bounds = self.IBP_ReLU(layer_input_bounds) # Compute the next layers input bounds
                     c_applied_bounds = self.apply_c(layer_output_bounds) if (is_last and self.c is not None) else layer_output_bounds
+                    layer_output_bounds = c_applied_bounds
 
                     # The layer information is saved here in a dataframe
-                    self.layer_information.loc[layer_idx, ['IBP_input_bounds', 'IBP_output_bounds']] = [layer_input_bounds.detach().cpu(), c_applied_bounds.detach().cpu()]
+                    self.layer_information.loc[layer_idx, ['IBP_input_bounds', 'IBP_output_bounds']] = [layer_input_bounds.detach().cpu(), layer_output_bounds.detach().cpu()]
 
                     '''Computing the relaxation parameters based on the input bounds of the activation function'''
                     if self.compute_relaxation_params: 
                         self.compute_relaxations(layer_input_bounds.detach().cpu(), layer_idx)
 
-
-        self.layer_information = self.layer_information
-
         # Checks if bounds will be printed
         if print_out_bounds:
             self.print_IBP_results(print_interm_bounds=print_interm_bounds)
 
-        return self.layer_information
+        return layer_output_bounds[:, 0], layer_output_bounds[:, 1] # last processed layer output = output bounds
+
 
 
     def print_IBP_results(self, print_interm_bounds=True):
@@ -175,8 +176,8 @@ class IBP(Bounding):
         if print_interm_bounds:
             for idx, row in self.layer_information.iterrows():
                 layer_type = row.Layer_type
-                layer_input_bounds = row.Layer_input_bounds
-                layer_output_bounds = row.Layer_output_bounds
+                layer_input_bounds = row["IBP_input_bounds"]
+                layer_output_bounds = row["IBP_output_bounds"]
 
                 print(f'Layer {idx}, {layer_type}, input: \n', layer_input_bounds, '\n')
 
@@ -194,7 +195,7 @@ if __name__ == "__main__":
     output_size = model[-1].weight.shape[0]
     c = torch.zeros((output_size,1)).to(device)
     c[0] = 1
-    c[15] = -18
+
     
 
     '''This part runs IBP with the elementwise infinity norm ball'''
@@ -214,6 +215,6 @@ if __name__ == "__main__":
     eps = 10
 
     IBP = IBP(model, x_0=x_0, norm=norm, eps=eps, c=c, compute_relaxation_params=True)
-    IBP.compute_bounds(print_interm_bounds=False, print_out_bounds=True)
+    lb, ub = IBP.compute_bounds(print_interm_bounds=False, print_out_bounds=True)
 
 
