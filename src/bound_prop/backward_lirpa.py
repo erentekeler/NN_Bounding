@@ -5,7 +5,7 @@ from typing import Dict
 import copy
 
 from src.NN_model import NeuralNetwork
-from src.Bounding import Bounding
+from src.bound_prop.Bounding import Bounding
 from src.bound_prop.IBP import IBP
 
 

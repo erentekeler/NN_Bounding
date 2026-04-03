@@ -39,9 +39,10 @@ eps = 2
 # Creating a linear property vector out of ones
 # If you want to compute elementwise bounds, set c=None
 output_size = model[-1].weight.shape[0]
-c = torch.ones((output_size, 1), device=device) # Must be in the matrix form (size, 1)
-# c[2] = -1 # you can set the elements of the property vector here
-c=None
+c = torch.zeros((output_size, 1), device=device) # Must be in the matrix form (size, 1)
+c[2] = -1 # you can set the elements of the property vector here
+c[3] = 2 # you can set the elements of the property vector here
+# c=None
 
 '''Running the bound prop algorithms and Gurobi'''
 # IBP
@@ -49,11 +50,11 @@ IBP = IBP(model, x_0=x_0, norm=norm, eps=eps, c=c)
 IBP.compute_bounds(print_interm_bounds=False, print_out_bounds=True)
 
 # Backward
-backward_lirpa = backward_lirpa(model=model, x_0=x_0, norm=norm, eps=eps, c=c)
+backward_lirpa = backward_lirpa(model=model, x_0=x_0, norm=norm, eps=eps, c=c, relaxation_method="backward", compute_interm_bounds=True)
 backward_lb, backward_ub = backward_lirpa.compute_bounds(print_out_bounds=True)
 
 # Forward
-forward_lirpa = forward_lirpa(model=model, x_0=x_0, norm=norm, eps=eps, c=c)
+forward_lirpa = forward_lirpa(model=model, x_0=x_0, norm=norm, eps=eps, c=c, relaxation_method="forward", compute_interm_bounds=True)
 forward_lb, forward_ub = forward_lirpa.compute_bounds(print_out_bounds=True)
 
 

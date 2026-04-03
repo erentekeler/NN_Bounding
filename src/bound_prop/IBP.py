@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from src.NN_model import NeuralNetwork
-from src.Bounding import Bounding
+from src.bound_prop.Bounding import Bounding
 
 
 class IBP(Bounding):

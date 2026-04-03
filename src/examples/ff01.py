@@ -42,21 +42,20 @@ c = torch.ones((output_size, 1), device=device) # Must be in the matrix form (si
 # c=None
 
 '''Running the bound prop algorithms and Gurobi'''
-# IBP
-IBP = IBP(model, input_range=input_range, c=c)
-IBP.compute_bounds(print_interm_bounds=False, print_out_bounds=True)
-
 # Backward
-backward_lirpa = backward_lirpa(model=model, input_range=input_range, c=c)
-backward_lb, backward_ub = backward_lirpa.compute_bounds(print_out_bounds=True)
+backward = backward_lirpa(model=model, input_range=input_range, c=None, relaxation_method="backward", compute_interm_bounds=True)
+backward_lb, backward_ub = backward.compute_bounds(print_out_bounds=True)
 
 # Forward
-forward_lirpa = forward_lirpa(model=model, input_range=input_range, c=c)
-forward_lb, forward_ub = forward_lirpa.compute_bounds(print_out_bounds=True)
+forward = forward_lirpa(model=model, input_range=input_range, c=None, relaxation_method="IBP")
+forward_lb, forward_ub = forward.compute_bounds(print_out_bounds=True)
+
+# IBP
+ibp = IBP(model, input_range=input_range, c=None, compute_relaxation_params=True) # No need to compute slopes and biases
+ibp_lb, ibp_ub = ibp.compute_bounds(print_interm_bounds=False, print_out_bounds=True)
 
 # Triangular relaxation LP
-c = c.detach().cpu().numpy().flatten()
-solve_LP(model, input_range=input_range, model_type="triangular", c=c)
+solve_LP(model, input_range=input_range, model_type="triangular", c=None, interm_method="IBP", relaxation_method="IBP", layer_information=ibp.layer_information)
 
-# MILP, fairly larger model, hard to solve with binaries
-solve_LP(model, input_range=input_range, model_type="MILP", c=c)
+# MILP
+solve_LP(model, input_range=input_range, model_type="MILP", c=None, interm_method="IBP", relaxation_method="IBP", layer_information=ibp.layer_information)

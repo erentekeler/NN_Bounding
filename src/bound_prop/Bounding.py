@@ -101,6 +101,20 @@ class Bounding():
         self.layer_information.at[layer_idx, f"{self.method}_lb_bias"] = set_zero(pre_activation_bounds_x)
 
 
+    def export_relaxation_params(self):
+        '''This function exports the relaxation parameters in a compatible way with the bound prop methods.
+            Note: Not for IBP or custom, only for forward and backward bounds.'''
+        ub_relaxation, lb_relaxations = {}, {}
+        for layer_idx, layer in self.layer_information.iterrows():
+            ub_relaxation[layer_idx] = {'custom_ub_slope': layer[f"{self.method}_ub_slope"],
+                                        'custom_ub_bias': layer[f"{self.method}_ub_bias"]}
+            
+            lb_relaxations[layer_idx] = {'custom_lb_slope': layer[f"{self.method}_lb_slope"],
+                                         'custom_lb_bias': layer[f"{self.method}_lb_bias"]}
+            
+        return (ub_relaxation, lb_relaxations)
+
+
     def plot_relaxations(self, bound_prop_method, layer_idx, neuron_idx):
         '''
         This function plots the upper and lower convex relaxations for debugging purposes

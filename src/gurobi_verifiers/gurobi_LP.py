@@ -8,16 +8,12 @@ import numpy as np
 import torch
 from torch import nn
 
-from src.Bounding import Bounding
+from src.bound_prop.Bounding import Bounding
 from src.NN_model import NeuralNetwork
 from src.gurobi_verifiers.gurobi_helper import constrain_ReLU
 
 
-def solve_LP(model, input_range, model_type, c=None):
-    # Computing the IBP bounds, and getting the network information
-    bound_computer = Bounding(model, input_range=input_range)
-    layer_information = bound_computer.layer_information 
-
+def solve_LP(model, input_range, model_type, c=None, interm_method=None, relaxation_method=None, layer_information=None):
     # %% Implemented the Gurobi model here
     # Creating the model
     m = gp.Model()
@@ -34,7 +30,7 @@ def solve_LP(model, input_range, model_type, c=None):
             out_dim = model[layer_idx].weight.shape[0] # Getting the number of output neurons
 
             # Defining the layer output variable
-            layer_output = m.addMVar(out_dim, lb=layer["Layer_output_bounds"][:, 0], ub=layer["Layer_output_bounds"][:, 1], name=f'z_{layer_idx}') 
+            layer_output = m.addMVar(out_dim, lb=layer[f"{interm_method}_output_bounds"][:, 0], ub=layer[f"{interm_method}_output_bounds"][:, 1], name=f'z_{layer_idx}') 
 
             # Getting the linear layer weights and biases to compute the layer output
             m.addConstr(layer_output == model[layer_idx].weight.detach().cpu().numpy() @ layer_input + model[layer_idx].bias.detach().cpu().numpy())
@@ -47,7 +43,8 @@ def solve_LP(model, input_range, model_type, c=None):
 
     # If the layer is a ReLU, constrain it between relaxations
         elif layer["Layer_type"] == "nn.ReLU":
-            layer_output = constrain_ReLU(m=m, layer=layer, layer_idx=layer_idx, layer_input=layer_input, model_type=model_type)  
+            layer_output = constrain_ReLU(m=m, layer=layer, layer_idx=layer_idx, layer_input=layer_input, 
+                                          model_type=model_type, interm_method=interm_method, relaxation_method=relaxation_method)  
 
             # This then becomes a layer input to the next layer
             if layer_idx == layer_information.index[-1]: # This is for the final layer
@@ -77,7 +74,7 @@ def solve_LP(model, input_range, model_type, c=None):
         
         # This is just to print elementwise bounds
         print('\n', '************************************************************************')
-        print(f'Gurobi {model_type} Output Bounds: \n')
+        print(f'Gurobi {model_type} Output Bounds ({relaxation_method} relaxations, {interm_method} bounds):')
         for idx in range(output_dim):
             print(f'{lb[idx]} <= f_{idx}(x) <= {ub[idx]}')
         print('************************************************************************', '\n')
@@ -103,7 +100,7 @@ def solve_LP(model, input_range, model_type, c=None):
 
         # This is to print the bounds on the property
         print('\n', '************************************************************************')
-        print(f'Gurobi {model_type} Output Bounds: \n')
+        print(f'Gurobi {model_type} Output Bounds ({relaxation_method} relaxations, {interm_method} bounds):')
         print(f'{lb} <= {property} <= {ub}')
         print('************************************************************************', '\n')
             
