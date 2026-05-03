@@ -103,6 +103,8 @@ def solve_LP(model, input_range, model_type, c=None, interm_method=None, relaxat
         print(f'Gurobi {model_type} Output Bounds ({relaxation_method} relaxations, {interm_method} bounds):')
         print(f'{lb} <= {property} <= {ub}')
         print('************************************************************************', '\n')
+
+    return (lb, ub)
             
 
 
