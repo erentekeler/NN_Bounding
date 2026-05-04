@@ -242,21 +242,29 @@ class forward_lirpa(Bounding):
                 # Storing the bounds in the layer_information df
                 self.layer_information.at[layer_idx, 'forward_output_bounds'] = layer_output_bounds.detach().cpu()
 
-        return layer_output_bounds # last computed layer bound = output bound
+        return layer_output_bounds, output_bound_params # last computed layer bound = output bound
             
 
     def compute_bounds(self, print_out_bounds=True):
         if (self.relaxation_method=="IBP") or (self.relaxation_method=="custom"):
             if self.compute_interm_bounds:
-                output_bounds = self.compute_intermediate_bounds(print_out_bounds=print_out_bounds)
+                output_bounds, output_bound_params = self.compute_intermediate_bounds(print_out_bounds=print_out_bounds)
+                self.A_ub, self.A_lb, self.d_lb, self.d_ub = output_bound_params # Saving the output bound parameters
                 return output_bounds[:, 0], output_bounds[:, 1] 
             else:
                 output_bound_params = self.compute_A_d(model=self.model, layer_information=self.layer_information, c=self.c)
                 output_bounds = self.concretize_bounds(output_bound_params=output_bound_params, print_out_bounds=print_out_bounds)
+                self.A_ub, self.A_lb, self.d_lb, self.d_ub = output_bound_params # Saving the output bound parameters
                 return output_bounds[:, 0], output_bounds[:, 1] 
         elif self.relaxation_method == "forward": # must compute the intermediate bounds
-            output_bounds = self.compute_intermediate_bounds(print_out_bounds=print_out_bounds)
+            output_bounds, output_bound_params = self.compute_intermediate_bounds(print_out_bounds=print_out_bounds)
+            self.A_ub, self.A_lb, self.d_lb, self.d_ub = output_bound_params # Saving the output bound parameters
             return output_bounds[:, 0], output_bounds[:, 1] 
+        
+    
+    def get_output_bound_params(self):
+        '''This function returns the output bound parameters'''
+        return (self.A_ub, self.A_lb, self.d_lb, self.d_ub)
 
             
     def print_forward_results(self, lb, ub):
